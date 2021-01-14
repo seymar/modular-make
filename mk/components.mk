@@ -1,12 +1,32 @@
-include mk/macros.mk
+COMPONENTS_ADDED := $(COMPONENTS)
 
-#$(info $(shell printf "COMPONENTS_MAKEFILES\t\t$(COMPONENTS_MAKEFILES)"))
+# Includes a component Makefile and processes its variables
+define AddComponent
+#$$(info $$(shell printf "AddComponent $(1)"))
+comp := $(1)
+parent := $(2)
+include mk/add_component.mk
+endef
+
+$(info $(shell printf "COMPONENTS $(COMPONENTS)"))
 
 # Include top-level component makefiles
-$(foreach mk,$(COMPONENTS_MAKEFILES),$(eval $(call IncludeComponentMakefile,$(mk))))
+TLCOMPONENTS := $(foreach mk,$(COMPONENTS),$(mk) \
+	$(eval $(call AddComponent,$(mk),)))
 
-#$(info $(shell printf "COMPONENTS_MAKEFILES_INCLUDED\t$(COMPONENTS_MAKEFILES_INCLUDED)"))
-$(info $(shell printf "COMPONENTS $(COMPONENTS_ADDED)"))
+$(info $(shell printf "TLCOMPONENTS $(TLCOMPONENTS)"))
+
+#$(info $(shell printf "apps/hello_world-children\t$(apps/hello_world-children)"))
+
+$(info $(shell printf "COMPONENTS_ADDED $(COMPONENTS_ADDED)"))
+$(info $(shell printf "\t-children $(value -children)"))
+
+GOALS := $(TLCOMPONENTS:%=build-%)
+
+$(info $(shell printf "GOALS: $(GOALS)"))
 
 .DEFAULT_GOAL := all
-#all: $(ALL_PREREQS)
+all: $(GOALS) | $(BUILD_DIR)
+
+$(BUILD_DIR):
+	mkdir -p $@

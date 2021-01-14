@@ -7,10 +7,3 @@ endef
 # Simply expanded variables for next macro
 COMPONENTS_FOUND := 
 COMPONENTS_MAKEFILES_INCLUDED :=
-
-# Includes a component Makefile and processes its variables
-define IncludeComponentMakefile
-$$(info $$(shell printf IncludeComponentMakefile))
-comp_make := $(1)
-include mk/include_component_makefile.mk
-endef
