@@ -1,1 +1,1 @@
-include $(COMP_DIR)/../libs.mk
+include $(comp_dir)/../libs.mk

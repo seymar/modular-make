@@ -1,62 +1,59 @@
-# Reset the variables set by the component.mk to prevent issues
-COMPONENTS := 
-COMP_INPUTS :=
-COMP_OUTPUTS :=
+#$(info AddComponents($(comp)))# src/hello_world
 
-# If the component is a path to a folder, find a makefile in that folder
-ifneq ($(comp:%.mk=),)
-comp := $(wildcard $(comp)/*.mk)
+comp := $(comp:.mk=)
+comp_parts := $(subst /, ,$(comp))
+comp_typedir := $(firstword $(comp_parts))
+comp_type := $(comp_typedir:s=)
+comp_name := $(lastword $(comp_parts))
+comp_mk := $(wildcard $(comp).mk)
+comp_mk += $(wildcard $(comp)/$(comp_type).mk)
+comp_mk += $(wildcard $(comp)/$(comp_name).mk)
+comp_mk := $(firstword $(comp_mk))
+comp_path := $(dir $(comp_mk))
+comp_dir := $(comp_path:/=)
+comp_bdir := build/$(comp_dir)
+
+$(info $(comp) ($(comp_type)) @ $(comp_mk))
+
+ifeq ($(comp_mk),)
+$(error Could not find a makefile for $(comp))
 endif
 
-# Set variable to component directory for use in the component makefile
-COMP_DIR := $(patsubst %/,%,$(dir $(comp)))
-COMP_BDIR := $(BUILD_DIR)/$(COMP_DIR)
+# $(info comp		$(comp))
+# $(info comp_typedir	$(comp_typedir))
+# $(info comp_type	$(comp_type))
+# $(info comp_name	$(comp_name))
+# $(info comp_mk		$(comp_mk))
+# $(info comp_dir		$(comp_dir))
 
-# Include the  component
-$(info $(parent) -> $(COMP_DIR))
-include $(comp)
-
-$(info $(shell printf "\tCOMPONENTS\t$(COMPONENTS)"))
-# $(info $(shell printf "\tDEPENDENCIES\t$(DEPENDENCIES)"))
-
-$(eval $(COMP_DIR)-inputs += $(COMP_INPUTS))
-$(eval $(COMP_DIR)-outputs += $(COMP_OUTPUTS))
-
-$(info $(shell printf "OUTPUTS\t$(COMP_OUTPUTS)"))
-
-# Create rule for component
-define ComponentRule
-.SECONDEXPANSION:
+# Component rules
+.PHONY: $(comp) $(comp)-inputs $(comp)-outputs
 .NOTPARALLEL:
-build-$(1): $(BUILD_DIR)/$(1) $$$$($(1)-inputs) $$$$($(1)-outputs)
-	$$(info $$@: $$^)
-	@printf "\tinputs $$($(1)-inputs)\n"
-	@printf "\toutputs $$($(1)-outputs)\n"
-endef
-$(eval $(call ComponentRule,$(COMP_DIR)))
+$(comp): $(comp_bdir) $(comp)-inputs $(comp)-outputs;
+	$(info $(shell printf "  BUILD   $@"))
+$(comp_bdir):; $(info $(shell printf "  MKDIR   $(comp)")) $(Q)mkdir -p $@
+$(comp)-inputs:
+$(comp)-outputs:
+clean-$(comp):
+	$(info $(shell printf "  RM      $(comp_bdir)"))
+	$(Q)rm -rf $(comp_bdir)
 
-$(COMP_BDIR):
-	mkdir -p $@
+# Initialize variables the component can set and include the component
+components_temp := $(components)
+components :=
+dependencies :=
+include $(comp_mk)
 
-COMPONENTS_TO_ADD := $(filter-out $(COMPONENTS_ADDED),$(COMPONENTS))
-COMPONENTS_ADDED += $(COMPONENTS_TO_ADD)
+# Add dependencies as inputs so they get build first
+dependencies := $(filter-out $(components_temp),$(dependencies))
+$(info $(shell printf "\tdependencies\t$(dependencies)"))
+$(comp)-inputs: $(dependencies)
 
-$(info $(shell printf "\tCOMPONENTS_TO_ADD\t$(COMPONENTS_TO_ADD)"))
+# Initialize variables the sub-components can set
+components_archives_temp := $(components_archives)
+components_archives :=
 
-# Add this component and its children to its parent (recursively)
-$(eval $(COMP_DIR)-children = $(COMPONENTS))
-#$(info $(COMP_DIR)-children = $(value $(COMP_DIR)-children))
-$(eval $(parent)-children += $(COMP_DIR) $($(COMP_DIR)-children))
-#$(info $(parent)-children += $(COMP_DIR) $($(COMP_DIR)-children))
-#$(info $(parent)-children = $(value $(parent)-children))
+# Include new components
+components := $(filter-out $(dependencies) $(components_temp),$(components)) $(components_temp)
+$(foreach com,$(dependencies) $(new_components),$(eval $(call AddComponent,$(com))))
 
-$(foreach mk,$(COMPONENTS_TO_ADD),$(eval $(call AddComponent,$(mk),$(COMP_DIR))))
-
-# a -> c
-# a -> b -> c
-
-# a-children: b c
-# b-children: c*
-# c-children:
-
-# a-children = c-children + b-children
