@@ -1,10 +1,9 @@
-VALS := a_
+all: x
 
-include a.mk
+name = x
 
-.PHONY: somerule
-.SECONDEXPANSION:
-somerule: $$(VALS)
-	echo $(VALS) > somerule
+.PHONY:
+$(name):
+	$(info hoi)
 
-VALS := $(VALS:_=) b
+name = y
