@@ -1,5 +1,5 @@
-include src/srcs.mk
-
 dependencies := libs/somelib
+
+include src/srcs.mk
 
 

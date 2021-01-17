@@ -1,5 +1,3 @@
-#$(info AddComponents($(comp)))# src/hello_world
-
 comp := $(comp:.mk=)
 comp_parts := $(subst /, ,$(comp))
 comp_typedir := $(firstword $(comp_parts))
@@ -13,47 +11,45 @@ comp_path := $(dir $(comp_mk))
 comp_dir := $(comp_path:/=)
 comp_bdir := build/$(comp_dir)
 
-$(info $(comp) ($(comp_type)) @ $(comp_mk))
+$(info $(shell printf "\e[97m$(comp) (\e[34m$(comp_type)\e[97m) \e[31m@\e[39m \e[97m$(comp_mk)\e[0m\n"))
 
 ifeq ($(comp_mk),)
 $(error Could not find a makefile for $(comp))
 endif
 
-# $(info comp		$(comp))
-# $(info comp_typedir	$(comp_typedir))
-# $(info comp_type	$(comp_type))
-# $(info comp_name	$(comp_name))
-# $(info comp_mk		$(comp_mk))
-# $(info comp_dir		$(comp_dir))
-
 # Component rules
-.PHONY: $(comp) $(comp)-inputs $(comp)-outputs
+.PHONY: $(comp) inputs-$(comp) outputs-$(comp)
 .NOTPARALLEL:
-$(comp): $(comp_bdir) $(comp)-inputs $(comp)-outputs;
+$(comp): $(comp_bdir) inputs-$(comp) outputs-$(comp)
 	$(info $(shell printf "  BUILD   $@"))
-$(comp_bdir):; $(info $(shell printf "  MKDIR   $(comp)")) $(Q)mkdir -p $@
-$(comp)-inputs:
-$(comp)-outputs:
+$(comp_bdir):; $(info $(shell printf "  MKDIR   $@")) $(Q)mkdir -p $@
+inputs-$(comp):
+outputs-$(comp):
 clean-$(comp):
-	$(info $(shell printf "  RM      $(comp_bdir)"))
-	$(Q)rm -rf $(comp_bdir)
+	$(Q)printf "  RM      $(cleanables)\n"
+	$(Q)rm -rf $(cleanables)
 
 # Initialize variables the component can set and include the component
 components_temp := $(components)
 components :=
 dependencies :=
+comp_outputs :=
+comp_cleanables = $(comp_bdir)
 include $(comp_mk)
 
-# Add dependencies as inputs so they get build first
-dependencies := $(filter-out $(components_temp),$(dependencies))
-$(info $(shell printf "\tdependencies\t$(dependencies)"))
-$(comp)-inputs: $(dependencies)
+# Set target specific variables
+clean-$(comp): cleanables := $(comp_cleanables)
 
-# Initialize variables the sub-components can set
-components_archives_temp := $(components_archives)
-components_archives :=
+# Add variables to targets
+outputs-$(comp): $(comp_outputs)
+$(comp)_outputs = $(comp_outputs)
+
+# Add dependencies as inputs so they get build first
+inputs-$(comp): $(dependencies)
+$(info $(shell printf "\tdependencies\t$(dependencies)"))
 
 # Include new components
-components := $(filter-out $(dependencies) $(components_temp),$(components)) $(components_temp)
-$(foreach com,$(dependencies) $(new_components),$(eval $(call AddComponent,$(com))))
-
+new_components := $(filter-out $(components_temp),$(dependencies) $(components))
+components := $(components_temp) $(new_components)
+$(info $(shell printf "\tnew_components\t$(new_components)"))
+$(foreach com,$(new_components),$(eval $(call AddComponent,$(com))))

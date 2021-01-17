@@ -1,10 +1,13 @@
+#!/usr/bin/make -j
 MAKEFLAGS += --no-builtin-rules
 .SUFFIXES:
+Q ?= @
+.DEFAULT_GOAL := build
 
 components := src/hello_world
-binaries := $(components:src/%=bin/%)
 
+include mk/flags.mk
 include mk/components.mk
 
-build: $(components)
-clean: $(components:%=clean-%)
+build: build-components
+clean: clean-components

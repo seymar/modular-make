@@ -4,16 +4,11 @@ comp_srcs += $(wildcard $(comp)/*.cpp)
 comp_include := $(comp)
 
 comp_bin := bin/$(comp_name)
+comp_outputs := $(comp_bin)
+comp_cleanables += $(comp_bin)
 
 # Rule to create binary for the source subdirectory
-$(comp)-outputs: $(comp_bin)
-$(comp_bin): $(comp_srcs) $(components_archives)
-	$(Q)printf "  BIN     $@ < $^\n"
-	$(CC) $(comp_include:%=-I%) $(archives) $^ -o $@
-
-# Add clean target
-clean-$(comp): cleanbin-$(comp)
-cleanbin-$(comp): bintorm := $(comp_bin)
-cleanbin-$(comp):
-	$(Q)printf "  RM      $(bintorm)\n"
-	$(Q)rm -f $(bintorm)
+$(comp_bin): arvars := $(dependencies:=_outputs)
+$(comp_bin): $(comp_srcs)
+	$(Q)printf "  BIN     $@\n"
+	$(Q)$(CC) $(comp_include:%=-I%) $^ $(foreach av,$(arvars),$($(av))) -o $@
